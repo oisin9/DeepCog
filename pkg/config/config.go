@@ -60,3 +60,21 @@ func LoadConfig(cfgPath string) (*Config, error) {
 func GetConfig() *Config {
 	return cfg
 }
+
+func (cfg *Config) GetModel(id string) *Model {
+	for _, model := range cfg.Models {
+		if model.Id == id {
+			return &model
+		}
+	}
+	return nil
+}
+
+func (cfg *Config) GetBaseModel(id string) *BaseModel {
+	for _, baseModel := range cfg.BaseModels {
+		if baseModel.Id == id {
+			return &baseModel
+		}
+	}
+	return nil
+}

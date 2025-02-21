@@ -6,4 +6,5 @@ import (
 
 func SetupV1Routes(e *echo.Group) {
 	e.GET("/models", GetModels)
+	e.POST("/chat/completions", ChatCompletion)
 }
