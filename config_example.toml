@@ -1,0 +1,15 @@
+[server]
+port = "8080"
+
+[[base_models]]
+name=""
+model_name=""
+base_url="https://xxx/com/v1"
+api_key="ak-xxxx"
+max_token=8192
+
+[[models]]
+name=""
+thinking_model=""
+generate_model=""
+api_key=""
