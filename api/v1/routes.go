@@ -5,4 +5,5 @@ import (
 )
 
 func SetupV1Routes(e *echo.Group) {
+	e.GET("/models", GetModels)
 }

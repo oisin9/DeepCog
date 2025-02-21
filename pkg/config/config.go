@@ -15,15 +15,22 @@ type Server struct {
 	Port string `toml:"port"`
 }
 
+type Provider struct {
+	Name    string `toml:"name"`
+	BaseUrl string `toml:"base_url"`
+	ApiKey  string `toml:"api_key"`
+}
+
 type BaseModel struct {
-	Name      string `toml:"name"`
+	Id        string `toml:"id"`
 	ModelName string `toml:"model_name"`
 	BaseUrl   string `toml:"base_url"`
 	ApiKey    string `toml:"api_key"`
 }
 
 type Model struct {
-	Name          string `toml:"name"`
+	Id            string `toml:"id"`
+	OwnedBy       string `toml:"owned_by"`
 	ThinkingModel string `toml:"thinking_model"`
 	GenerateModel string `toml:"generate_model"`
 	ApiKey        string `toml:"api_key"`
@@ -31,6 +38,7 @@ type Model struct {
 
 type Config struct {
 	Server     Server      `toml:"server"`
+	Providers  []Provider  `toml:"providers"`
 	BaseModels []BaseModel `toml:"base_models"`
 	Models     []Model     `toml:"models"`
 }

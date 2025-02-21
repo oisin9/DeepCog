@@ -1,15 +1,22 @@
 [server]
 port = "8080"
 
-[[base_models]]
+[[providers]]
 name=""
+base_url=""
+api_key=""
+
+[[base_models]]
+id=""
+provider=""
 model_name=""
 base_url="https://xxx/com/v1"
 api_key="ak-xxxx"
 max_token=8192
 
 [[models]]
-name=""
+id=""
+owned_by=""
 thinking_model=""
 generate_model=""
 api_key=""
