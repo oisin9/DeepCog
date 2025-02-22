@@ -3,12 +3,10 @@ package openai
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"net/http"
 
 	"connor.run/deepcog/pkg/config"
+	"connor.run/deepcog/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
@@ -42,15 +40,12 @@ func (c *Client) SetTemperature(temperature float32) {
 }
 
 func (client *Client) ChatStream(c echo.Context, messages []Message) error {
-	c.Response().Header().Set(echo.HeaderContentType, "text/event-stream")
-	c.Response().Header().Set("Cache-Control", "no-cache")
-	c.Response().Header().Set("Connection", "keep-alive")
-
-	w := c.Response().Writer
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		return c.JSON(500, "Streaming unsupported!")
+	sseClient := utils.NewSSEClient(c)
+	err := sseClient.Init()
+	if err != nil {
+		return err
 	}
+	defer sseClient.Close()
 	id := "chatcmpl-" + uuid.New().String()
 	if client.ThinkingModel != nil {
 		config := ai.DefaultConfig(client.ThinkingModel.ApiKey)
@@ -69,27 +64,18 @@ func (client *Client) ChatStream(c echo.Context, messages []Message) error {
 		}
 		thinkingStream, err := aiClient.CreateChatCompletionStream(ctx, req)
 		if err != nil {
-			return c.JSON(500, err)
+			return err
 		}
+		defer thinkingStream.Close()
 		reasoning_content := ""
 		for {
 			response := ChatCompletionStreamResponse{}
 			rawLine, err := thinkingStream.RecvRaw()
 			if err != nil {
-				fmt.Fprint(w, "data: [DONE]\n\n")
-				flusher.Flush()
-				thinkingStream.Close()
-				return err
-			}
-			err = json.Unmarshal(rawLine, &response)
-			if errors.Is(err, io.EOF) {
-				thinkingStream.Close()
 				break
 			}
+			err = json.Unmarshal(rawLine, &response)
 			if err != nil {
-				fmt.Fprint(w, "data: [DONE]\n\n")
-				flusher.Flush()
-				thinkingStream.Close()
 				return err
 			}
 			response.ID = id
@@ -100,25 +86,9 @@ func (client *Client) ChatStream(c echo.Context, messages []Message) error {
 			}
 			if response.Choices[0].Delta.ReasoningContent != "" {
 				reasoning_content += response.Choices[0].Delta.ReasoningContent
-				data, err := json.Marshal(response)
-				if err != nil {
-					fmt.Fprint(w, "data: [DONE]\n\n")
-					flusher.Flush()
-					thinkingStream.Close()
-					return err
-				}
-				fmt.Fprintf(w, "data: %s\n\n", string(data))
-				flusher.Flush()
+				sseClient.SendResponse(response)
 			} else {
-				data, err := json.Marshal(response)
-				if err != nil {
-					fmt.Fprint(w, "data: [DONE]\n\n")
-					flusher.Flush()
-					thinkingStream.Close()
-					return err
-				}
-				fmt.Fprintf(w, "data: %s\n\n", string(data))
-				flusher.Flush()
+				sseClient.SendResponse(response)
 			}
 		}
 		fmt.Println(reasoning_content)
