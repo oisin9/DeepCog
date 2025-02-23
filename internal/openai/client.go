@@ -140,6 +140,9 @@ func (client *Client) ChatStream(c echo.Context, messages []Message) error {
 		}
 		response.ID = id
 		response.Model = client.Model.Id
+		if reasoning_content != "" && response.Choices[0].Delta.ReasoningContent != "" {
+			continue
+		}
 		if response.Choices[0].FinishReason == "stop" {
 			break
 		}
