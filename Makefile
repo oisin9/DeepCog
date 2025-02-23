@@ -15,10 +15,10 @@ build:
 
 install: build
 	@cp $(BIN_DIR)/$(BIN_NAME) /usr/local/bin/$(BIN_NAME)
-	@sudo mkdir -p /etc/deepcog
-	@sudo cp config_example.toml /etc/deepcog/config.toml
-	@sudo cp deepcog.service /etc/systemd/system/deepcog.service
-	@sudo systemctl daemon-reload
+	@mkdir -p /etc/deepcog
+	@cp config_example.toml /etc/deepcog/config.toml
+	@cp deepcog.service /etc/systemd/system/deepcog.service
+	@systemctl daemon-reload
 	@echo "Install successful. Please edit /etc/deepcog/config.toml and run 'systemctl start deepcog' to start the service."
 
 uninstall:
