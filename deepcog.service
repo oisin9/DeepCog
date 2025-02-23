@@ -1,0 +1,17 @@
+[Unit]
+Description=DeepCog AI Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/local/bin/deepcog --config /etc/deepcog/config.toml
+Restart=on-failure
+RestartSec=5s
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=deepcog
+
+[Install]
+WantedBy=multi-user.target
