@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"strings"
+
 	"connor.run/deepcog/internal/openai"
 	"connor.run/deepcog/pkg/config"
 	"github.com/labstack/echo/v4"
@@ -29,6 +31,13 @@ func ChatCompletion(c echo.Context) error {
 	model := cfg.GetModel(req.Model)
 	if model == nil {
 		return c.JSON(400, "Model not found")
+	}
+	if model.ApiKey != "" {
+		authHeader := c.Request().Header.Get("Authorization")
+		apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+		if apiKey != model.ApiKey {
+			return c.JSON(400, "Invalid API key")
+		}
 	}
 	thinking_model := cfg.GetBaseModel(model.ThinkingModel)
 	generate_model := cfg.GetBaseModel(model.GenerateModel)
