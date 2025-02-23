@@ -1,14 +1,17 @@
 package config
 
 import (
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/BurntSushi/toml"
 )
 
 var (
-	once sync.Once
-	cfg  *Config
+	mu  sync.RWMutex
+	cfg *Config
 )
 
 type Server struct {
@@ -46,20 +49,35 @@ type Config struct {
 }
 
 func LoadConfig(cfgPath string) (*Config, error) {
-	loadConfigErr := error(nil)
-	once.Do(func() {
-		cfgLocal := &Config{}
-		_, err := toml.DecodeFile(cfgPath, cfgLocal)
-		if err != nil {
-			loadConfigErr = err
-			return
+	cfgLocal := &Config{}
+	_, err := toml.DecodeFile(cfgPath, cfgLocal)
+	if err != nil {
+		return nil, err
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	cfg = cfgLocal
+	return cfg, nil
+}
+
+func WatchConfig(cfgPath string) {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGHUP)
+
+	go func() {
+		for {
+			select {
+			case <-sigChan:
+				_, _ = LoadConfig(cfgPath)
+			}
 		}
-		cfg = cfgLocal
-	})
-	return cfg, loadConfigErr
+	}()
 }
 
 func GetConfig() *Config {
+	mu.RLock()
+	defer mu.RUnlock()
 	return cfg
 }
 

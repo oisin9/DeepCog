@@ -17,6 +17,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	config.WatchConfig(*cfgPath)
 
 	e := api.NewServer()
 	e.Start(fmt.Sprintf("0.0.0.0:%s", cfg.Server.Port))
