@@ -22,10 +22,12 @@ type Provider struct {
 }
 
 type BaseModel struct {
-	Id        string `toml:"id"`
-	ModelName string `toml:"model_name"`
-	BaseUrl   string `toml:"base_url"`
-	ApiKey    string `toml:"api_key"`
+	Id          string  `toml:"id"`
+	ModelName   string  `toml:"model_name"`
+	BaseUrl     string  `toml:"base_url"`
+	ApiKey      string  `toml:"api_key"`
+	Temperature float32 `toml:"temperature"`
+	MaxTokens   int     `toml:"max_tokens"`
 }
 
 type Model struct {

@@ -47,10 +47,13 @@ func (c *Client) GetThinkingStream(msg []Message) (*ChatStream, error) {
 		msgs = append(msgs, *message.ChatMessage())
 	}
 	req := ai.ChatCompletionRequest{
-		Model:     c.ThinkingModel.ModelName,
-		Messages:  msgs,
-		MaxTokens: c.MaxTokens,
-		Stream:    true,
+		Model:       c.ThinkingModel.ModelName,
+		Messages:    msgs,
+		Stream:      true,
+		Temperature: c.ThinkingModel.Temperature,
+	}
+	if c.ThinkingModel.Temperature == 0 {
+		req.Temperature = 0.6
 	}
 	stream, err := aiClient.CreateChatCompletionStream(ctx, req)
 	if err != nil {
@@ -80,10 +83,19 @@ func (c *Client) GetGenerateStream(msg []Message, reasoningContent string) (*Cha
 		msgs = append(msgs, *message.ChatMessage())
 	}
 	req := ai.ChatCompletionRequest{
-		Model:     c.GenerateModel.ModelName,
-		Messages:  msgs,
-		MaxTokens: c.MaxTokens,
-		Stream:    true,
+		Model:    c.GenerateModel.ModelName,
+		Messages: msgs,
+		Stream:   true,
+	}
+	if c.Temperature > 0 && c.Temperature < 1 {
+		req.Temperature = c.Temperature
+	} else if c.GenerateModel.Temperature > 0 {
+		req.Temperature = c.GenerateModel.Temperature
+	}
+	if c.MaxTokens > 0 {
+		req.MaxTokens = c.MaxTokens
+	} else if c.GenerateModel.MaxTokens > 0 {
+		req.MaxTokens = c.GenerateModel.MaxTokens
 	}
 	stream, err := aiClient.CreateChatCompletionStream(ctx, req)
 	if err != nil {
