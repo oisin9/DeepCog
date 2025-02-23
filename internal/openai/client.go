@@ -2,8 +2,6 @@ package openai
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
 	"connor.run/deepcog/pkg/config"
 	"connor.run/deepcog/pkg/utils"
@@ -39,6 +37,63 @@ func (c *Client) SetTemperature(temperature float32) {
 	c.Temperature = temperature
 }
 
+func (c *Client) GetThinkingStream(msg []Message) (*ChatStream, error) {
+	config := ai.DefaultConfig(c.ThinkingModel.ApiKey)
+	config.BaseURL = c.ThinkingModel.BaseUrl
+	aiClient := ai.NewClientWithConfig(config)
+	ctx := context.Background()
+	msgs := []ai.ChatCompletionMessage{}
+	for _, message := range msg {
+		msgs = append(msgs, *message.ChatMessage())
+	}
+	req := ai.ChatCompletionRequest{
+		Model:     c.ThinkingModel.ModelName,
+		Messages:  msgs,
+		MaxTokens: c.MaxTokens,
+		Stream:    true,
+	}
+	stream, err := aiClient.CreateChatCompletionStream(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return &ChatStream{
+		Stream: stream,
+	}, nil
+}
+
+func (c *Client) GetGenerateStream(msg []Message, reasoningContent string) (*ChatStream, error) {
+	config := ai.DefaultConfig(c.GenerateModel.ApiKey)
+	config.BaseURL = c.GenerateModel.BaseUrl
+	aiClient := ai.NewClientWithConfig(config)
+	ctx := context.Background()
+	// 把最后的一条role为user的消息替换成 reasoningContent
+	if reasoningContent != "" {
+		for i := len(msg) - 1; i >= 0; i-- {
+			if msg[i].Role == "user" {
+				msg[i].Content = reasoningContent
+				break
+			}
+		}
+	}
+	msgs := []ai.ChatCompletionMessage{}
+	for _, message := range msg {
+		msgs = append(msgs, *message.ChatMessage())
+	}
+	req := ai.ChatCompletionRequest{
+		Model:     c.GenerateModel.ModelName,
+		Messages:  msgs,
+		MaxTokens: c.MaxTokens,
+		Stream:    true,
+	}
+	stream, err := aiClient.CreateChatCompletionStream(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return &ChatStream{
+		Stream: stream,
+	}, nil
+}
+
 func (client *Client) ChatStream(c echo.Context, messages []Message) error {
 	sseClient := utils.NewSSEClient(c)
 	err := sseClient.Init()
@@ -47,36 +102,17 @@ func (client *Client) ChatStream(c echo.Context, messages []Message) error {
 	}
 	defer sseClient.Close()
 	id := "chatcmpl-" + uuid.New().String()
+	reasoning_content := ""
 	if client.ThinkingModel != nil {
-		config := ai.DefaultConfig(client.ThinkingModel.ApiKey)
-		config.BaseURL = client.ThinkingModel.BaseUrl
-		aiClient := ai.NewClientWithConfig(config)
-		ctx := context.Background()
-		msgs := []ai.ChatCompletionMessage{}
-		for _, message := range messages {
-			msgs = append(msgs, *message.ChatMessage())
-		}
-		req := ai.ChatCompletionRequest{
-			Model:     client.ThinkingModel.ModelName,
-			Messages:  msgs,
-			MaxTokens: client.MaxTokens,
-			Stream:    true,
-		}
-		thinkingStream, err := aiClient.CreateChatCompletionStream(ctx, req)
+		thinkingStream, err := client.GetThinkingStream(messages)
 		if err != nil {
 			return err
 		}
-		defer thinkingStream.Close()
-		reasoning_content := ""
 		for {
-			response := ChatCompletionStreamResponse{}
-			rawLine, err := thinkingStream.RecvRaw()
+			response, err := thinkingStream.Recv()
 			if err != nil {
+				thinkingStream.Close()
 				break
-			}
-			err = json.Unmarshal(rawLine, &response)
-			if err != nil {
-				return err
 			}
 			response.ID = id
 			response.Model = client.Model.Id
@@ -88,10 +124,26 @@ func (client *Client) ChatStream(c echo.Context, messages []Message) error {
 				reasoning_content += response.Choices[0].Delta.ReasoningContent
 				sseClient.SendResponse(response)
 			} else {
-				sseClient.SendResponse(response)
+				thinkingStream.Close()
 			}
 		}
-		fmt.Println(reasoning_content)
+	}
+	generateStream, err := client.GetGenerateStream(messages, reasoning_content)
+	if err != nil {
+		return err
+	}
+	defer generateStream.Close()
+	for {
+		response, err := generateStream.Recv()
+		if err != nil {
+			break
+		}
+		response.ID = id
+		response.Model = client.Model.Id
+		if response.Choices[0].FinishReason == "stop" {
+			break
+		}
+		sseClient.SendResponse(response)
 	}
 	return nil
 }

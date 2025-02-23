@@ -1,6 +1,8 @@
 package openai
 
 import (
+	"encoding/json"
+
 	ai "github.com/sashabaranov/go-openai"
 )
 
@@ -102,4 +104,25 @@ type ChatCompletionStreamChoice struct {
 type ChatCompletionStreamResponse struct {
 	ai.ChatCompletionStreamResponse
 	Choices []ChatCompletionStreamChoice `json:"choices"`
+}
+
+type ChatStream struct {
+	Stream *ai.ChatCompletionStream
+}
+
+func (c *ChatStream) Recv() (*ChatCompletionStreamResponse, error) {
+	resp := ChatCompletionStreamResponse{}
+	rawLine, err := c.Stream.RecvRaw()
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(rawLine, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (c *ChatStream) Close() {
+	c.Stream.Close()
 }
