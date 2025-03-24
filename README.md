@@ -16,3 +16,46 @@ DeepCog是一个开源的AI API服务，将Deepseek和Claude、Gemini、豆包�
 
 ## 快速开始
 
+### 安装
+
+需要提前配置golang的环境，如果没有可以从[Golang官网](https://go.dev/dl/)下载安装。
+
+Linux执行下面的命令安装：
+
+```shell
+git clone https://github.com/oisin9/DeepCog
+cd DeepCog
+make
+make install
+```
+
+### 配置
+
+修改`/etc/deepcog/config.toml`配置文件。
+
+下面是示例配置文件
+
+```toml
+[server]
+port = "8080" # 监听端口
+
+# 基础模型，这里的模型不提供对外服务，仅供models来使用
+[[base_models]]
+id="THINKING-MODEL" # 这里的id可以自己定义，在后面的models里使用
+model_name="deepseek-r1" # 需要调用api平台的model name
+base_url="https://api.deepseek.com" # 调用api平台的base url
+api_key="" # 调用api平台的api_key
+
+[[base_models]]
+id="CONTENT_MODEL"
+model_name="claude-3-7-sonnet-latest"
+base_url=""
+api_key=""
+
+[[models]]
+id="" # 对外服务的模型名
+owned_by="" # 对外服务显示的服务提供商，可不填
+thinking_model="THINKING-MODEL" # base_models里的id，如果不填则不使用思考模型的思考过程
+generate_model="CONTENT_MODEL" # base_models里的id
+api_key="" # 对外提供服务的api_key，如果留空则不校验
+```

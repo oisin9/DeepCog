@@ -38,7 +38,12 @@ install:
 	fi
 	
 	@echo "4. Updating systemd service"
-	@sudo install -Dm 644 deepcog.service /etc/systemd/system/deepcog.service
+	@if [ ! -f /etc/systemd/system/deepcog.service ]; then \
+		sudo install -Dm 644 deepcog.service /etc/systemd/system/deepcog.service; \
+		echo "New systemd service created: /etc/systemd/system/deepcog.service"; \
+	else \
+		echo "Preserving existing systemd service: /etc/systemd/system/deepcog.service"; \
+	fi
 	@sudo systemctl daemon-reload
 	
 	@echo "=== Installation completed ==="
