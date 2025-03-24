@@ -59,3 +59,13 @@ thinking_model="THINKING-MODEL" # base_models里的id，如果不填则不使用
 generate_model="CONTENT_MODEL" # base_models里的id
 api_key="" # 对外提供服务的api_key，如果留空则不校验
 ```
+
+### 启动服务
+
+在安装的时候已经创建好了systemd服务文件，使用下面的命令启动
+
+```shell
+systemctl enable --now deepcog
+```
+
+更多详细信息，请参阅完整文档。
