@@ -73,7 +73,7 @@ func (c *Client) GetGenerateStream(msg []Message, reasoningContent string) (*Cha
 	if reasoningContent != "" {
 		for i := len(msg) - 1; i >= 0; i-- {
 			if msg[i].Role == "user" {
-				msg[i].Content = reasoningContent
+				msg[i].SetContent(reasoningContent)
 				break
 			}
 		}

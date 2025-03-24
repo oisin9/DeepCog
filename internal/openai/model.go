@@ -2,6 +2,7 @@ package openai
 
 import (
 	"encoding/json"
+	"fmt"
 
 	ai "github.com/sashabaranov/go-openai"
 )
@@ -53,9 +54,51 @@ func NewModel(id string, owned_by string) *Model {
 	}
 }
 
+type ContentItem struct {
+	Type string `json:"type"`
+	Text string `json:"text,omitempty"`
+}
+
+type MessageContent struct {
+	StringValue string        `json:"-"`
+	ArrayValue  []ContentItem `json:"-"`
+	IsString    bool          `json:"-"`
+}
+
+func (m *MessageContent) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		m.StringValue = str
+		m.IsString = true
+		return nil
+	}
+	var arr []ContentItem
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return fmt.Errorf("failed to unmarshal MessageContent: %w", err)
+	}
+	m.ArrayValue = arr
+	m.IsString = false
+	return nil
+}
+
 type Message struct {
-	Role    string `json:"role" query:"role" form:"role" valid:"role"`
-	Content string `json:"content" query:"content" form:"content" valid:"content"`
+	Role    string         `json:"role" query:"role" form:"role" valid:"role"`
+	Content MessageContent `json:"content" query:"content" form:"content" valid:"content"`
+}
+
+func (m *Message) GetContent() string {
+	if m.Content.IsString {
+		return m.Content.StringValue
+	}
+	if len(m.Content.ArrayValue) > 0 {
+		return m.Content.ArrayValue[0].Text
+	}
+	return ""
+}
+
+func (m *Message) SetContent(content string) {
+	m.Content.StringValue = content
+	m.Content.IsString = true
 }
 
 type ChatChunk struct {
@@ -87,7 +130,7 @@ func (m *Message) ChatMessage() *ai.ChatCompletionMessage {
 	}
 	return &ai.ChatCompletionMessage{
 		Role:    role,
-		Content: m.Content,
+		Content: m.GetContent(),
 	}
 }
 
