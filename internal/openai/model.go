@@ -90,10 +90,13 @@ func (m *Message) GetContent() string {
 	if m.Content.IsString {
 		return m.Content.StringValue
 	}
-	if len(m.Content.ArrayValue) > 0 {
-		return m.Content.ArrayValue[0].Text
+	result := ""
+	for _, item := range m.Content.ArrayValue {
+		if item.Type == "text" {
+			result += item.Text
+		}
 	}
-	return ""
+	return result
 }
 
 func (m *Message) SetContent(content string) {
